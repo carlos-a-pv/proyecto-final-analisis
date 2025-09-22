@@ -1,0 +1,27 @@
+# 🔹 Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+*.egg
+*.log
+
+# 🔹 Entornos virtuales
+.env
+.venv/
+venv/
+ENV/
+
+# 🔹 Archivos de entorno / credenciales
+.env
+googleAuth.json
+
+# 🔹 Descargas y resultados
+descargas/
+screenshot.png
+
+# 🔹 Playwright
+playwright-report/
+test-results/
