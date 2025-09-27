@@ -1,6 +1,7 @@
 import asyncio
 import os
 import re
+import bibtexparser
 from pathlib import Path
 from playwright.async_api import async_playwright
 from dotenv import load_dotenv
@@ -121,14 +122,59 @@ async def login_google_account():
         await page.context.storage_state(path="googleAuth.json")
         browser.close()
 
-def merge_bib_files():
-    pass
 
-def main():
+def merge_bib_files(base_dir="descargas", output_file="descargas/unificado.bib", repetidos_file="/descargas/repetidos.bib"):
+    entradas_unicas = []
+    entradas_repetidas = []
+    titulos_vistos = set()
+
+    # Recorrer las carpetas ieee y sciencedirect
+    for db in ["ieee", "science_direct"]:
+        folder = os.path.join(base_dir, db)
+        if not os.path.exists(folder):
+            continue
+
+        for file in os.listdir(folder):
+            if file.endswith(".bib"):
+                ruta = os.path.join(folder, file)
+                with open(ruta, encoding="utf-8") as bibtex_file:
+                    bib_database = bibtexparser.load(bibtex_file)
+
+                for entry in bib_database.entries:
+                    title = entry.get("title", "").strip().lower()
+
+                    if title in titulos_vistos:
+                        entradas_repetidas.append(entry)
+                    else:
+                        titulos_vistos.add(title)
+                        entradas_unicas.append(entry)
+
+    # Guardar únicos
+    db_unicos = bibtexparser.bibdatabase.BibDatabase()
+    db_unicos.entries = entradas_unicas
+    writer = bibtexparser.bwriter.BibTexWriter()
+    writer.indent = "    "
+
+    with open(output_file, "w", encoding="utf-8") as f:
+        f.write(writer.write(db_unicos))
+
+    # Guardar repetidos
+    if entradas_repetidas:
+        db_repes = bibtexparser.bibdatabase.BibDatabase()
+        db_repes.entries = entradas_repetidas
+        with open(repetidos_file, "w", encoding="utf-8") as f:
+            f.write(writer.write(db_repes))
+
+    print(f"✅ Archivo unificado: {output_file}")
+    print(f"⚠️ Repetidos encontrados: {len(entradas_repetidas)} (guardados en {repetidos_file})")
+
+
+async def main():
     load_dotenv()
     # asyncio.run((login_google_account()))
     # asyncio.run((download_from_science_direct()))
-    asyncio.run((download_from_ieee()))
+    # asyncio.run((download_from_ieee()))
+    merge_bib_files(base_dir="descargas", output_file="descargas/unificado.bib", repetidos_file="descargas/repetidos.bib")
     
 if __name__ == "__main__":
     main()
