@@ -1,0 +1,21 @@
+# Automatización de navegadores
+playwright>=1.46.0
+
+# Manejo de archivos .env (credenciales, usuarios, etc.)
+python-dotenv>=1.0.1
+
+# Parsing y escritura de archivos BibTeX
+bibtexparser>=1.4.2
+
+# Async I/O (incluido en Python estándar, pero a veces se requiere para helpers)
+anyio>=4.4.0
+
+# Si necesitas selectores más robustos o scraping adicional
+beautifulsoup4>=4.12.3
+lxml>=5.2.1
+
+# Para manejo de datos tabulares o estructurados en casos de exportación
+pandas>=2.2.2
+
+# Dependencias opcionales útiles en proyectos grandes
+requests>=2.32.3
