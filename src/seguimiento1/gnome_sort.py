@@ -79,6 +79,7 @@ def sort_bib_file(input_file, output_file):
 
     print(f"✅ Archivo ordenado guardado en {output_file}")
     print(f"⏱️ Tiempo de ordenamiento (GnomeSort): {elapsed:.6f} segundos")
+    print(f"📚 Número de entradas ordenadas: {len(bib_database.entries)}")
 
 
 # ---------------- Ejecución directa ----------------

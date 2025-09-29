@@ -85,6 +85,7 @@ def sort_bib_file(input_file, output_file):
 
     print(f"✅ Archivo ordenado guardado en {output_file}")
     print(f"⏱️ Tiempo de ordenamiento (Comb Sort): {elapsed:.6f} segundos")
+    print(f"📚 Entradas ordenadas: {len(sorted_entries)}")
 
 # ---------------- Ejecución directa ----------------
 if __name__ == "__main__":

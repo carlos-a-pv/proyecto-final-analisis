@@ -88,6 +88,7 @@ def sort_bib_file(input_file, output_file):
 
     print(f"✅ Archivo ordenado guardado en {output_file}")
     print(f"⏱️ Tiempo de ordenamiento (Binary Insertion Sort): {elapsed:.6f} segundos")
+    print(f"📚 Total de entradas ordenadas: {len(sorted_entries)}")
 
 
 # ---------------- Ejecución directa ----------------
