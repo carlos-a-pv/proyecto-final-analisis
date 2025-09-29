@@ -31,32 +31,42 @@ def get_key(entry: dict) -> str:
     title = normalize(entry.get("title", ""))
     return f"{year}|{title}"
 
-
 def counting_sort(entries, index):
-    """Ordenamiento estable basado en el carácter en la posición index (de derecha a izquierda)."""
+    """Ordenamiento estable basado en el carácter en la posición index (Unicode seguro)."""
     n = len(entries)
     output = [None] * n
-    count = [0] * 256  # tabla ASCII extendida
 
+    # Construir lista de claves de cada entry en ese índice
+    keys = []
     for entry in entries:
         key = get_key(entry)
-        char = ord(key[index]) if index < len(key) else 0
+        if index < len(key):
+            keys.append(ord(key[index]))
+        else:
+            keys.append(0)
+
+    # Encontrar el máximo valor de char para definir la lista de conteo
+    max_char = max(keys)
+    count = [0] * (max_char + 1)
+
+    # Contar ocurrencias
+    for char in keys:
         count[char] += 1
 
-    for i in range(1, 256):
+    # Posiciones acumuladas
+    for i in range(1, len(count)):
         count[i] += count[i - 1]
 
-    for entry in reversed(entries):
-        key = get_key(entry)
-        char = ord(key[index]) if index < len(key) else 0
-        output[count[char] - 1] = entry
+    # Colocar elementos en la posición correcta
+    for i in range(n - 1, -1, -1):
+        char = keys[i]
+        output[count[char] - 1] = entries[i]
         count[char] -= 1
 
     return output
 
-
 def radix_sort(entries):
-    """Radix Sort por caracteres de la clave compuesta año|titulo."""
+    """Radix Sort por caracteres de la clave compuesta año|titulo (Unicode seguro)."""
     if not entries:
         return entries
 
@@ -65,7 +75,6 @@ def radix_sort(entries):
         entries = counting_sort(entries, index)
 
     return entries
-
 
 # ---------------- Función principal ----------------
 def sort_bib_file(input_file, output_file):

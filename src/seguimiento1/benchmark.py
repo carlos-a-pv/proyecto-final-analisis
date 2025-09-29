@@ -67,7 +67,9 @@ def plot_results(results):
     plt.title("Comparación de tiempos de ordenamiento (ascendente)")
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
+    plt.savefig("./files/benchmark.png")
     plt.show()
+    plt.close()  
 
 # ---------- Main ----------
 if __name__ == "__main__":
