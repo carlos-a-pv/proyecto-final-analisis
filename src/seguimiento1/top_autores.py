@@ -21,7 +21,7 @@ def top_authors(input_file, top_n=15, save_path=None):
             authors = [normalize_author(a) for a in entry["author"].split(" and ")]
             author_counter.update(authors)
 
-    # Ordenar descendente por número de apariciones
+    # Ordenar descendente por número de apariciones (lógica intacta)
     sorted_authors = sorted(author_counter.items(), key=lambda x: (-x[1], x[0]))
 
     # Seleccionar los top N
@@ -34,14 +34,15 @@ def top_authors(input_file, top_n=15, save_path=None):
 
     # ----------------- Gráfica -----------------
     if save_path:
-        authors = [a for a, c in top_authors_list]
-        counts = [c for a, c in top_authors_list]
+        # Invertir solo para la visualización ascendente
+        authors = [a for a, c in reversed(top_authors_list)]
+        counts = [c for a, c in reversed(top_authors_list)]
 
         plt.figure(figsize=(12, 6))
-        plt.bar(authors, counts, color="lightgreen")
+        plt.bar(authors, counts, color="skyblue")
         plt.xlabel("Autores")
         plt.ylabel("Número de apariciones")
-        plt.title(f"Top {top_n} autores con más apariciones")
+        plt.title(f"Top {top_n} autores con más apariciones (ascendente)")
         plt.xticks(rotation=45, ha="right")
         plt.tight_layout()
 
@@ -49,12 +50,12 @@ def top_authors(input_file, top_n=15, save_path=None):
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         plt.savefig(save_path)
         plt.close()
-        print(f" Gráfica guardada en {save_path}")
+        print(f"Gráfica guardada en {save_path}")
 
     return top_authors_list
 
 # ---------- Main ----------
 if __name__ == "__main__":
     INPUT = "unificado.bib"
-    SAVE_PATH = r"./files/top_authors.png"
+    SAVE_PATH = r"./files/top_authores.png"
     top_authors(INPUT, save_path=SAVE_PATH)
