@@ -1,0 +1,15 @@
+Generative models
+Prompting
+Machine learning
+Multimodality
+Fine-tuning
+Training data
+Algorithmic bias
+Explainability
+Transparency
+Ethics
+Privacy
+Personalization
+Human-AI interaction
+AI literacy
+Co-creation

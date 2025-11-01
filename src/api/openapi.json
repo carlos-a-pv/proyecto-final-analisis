@@ -1,0 +1,302 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Proyecto - Analysis API",
+    "version": "1.0.0",
+    "description": "API para ejecutar y orquestar los pipelines del proyecto:\n- r-1: automatización y fusión de archivos BibTeX (.bib).\n- r-2: conjunto de algoritmos de bibliometría que comparan abstracts/artículos entre sí y devuelven matrices de similitud.\n- r-3: análisis de frecuencia (conteo de seeds y descubrimiento de candidatos via TF-IDF).\n\nUso: esta API permite ejecutar cada pipeline desde el backend, recuperar resultados resumidos y descargar CSVs generados. Los endpoints aceptan parámetros mínimos (ruta al .bib, límite de abstracts, índices de artículos) para facilitar pruebas y su integración con un frontend."
+  },
+  "servers": [
+    {"url": "http://localhost:5010", "description": "Servidor local de desarrollo"}
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "description": "Comprueba que la API está disponible.",
+        "responses": {
+          "200": {"description": "Servicio disponible", "content": {"application/json": {"example": {"status": "ok"}}}}
+        }
+      }
+    },
+    "/run/r1": {
+      "post": {
+        "summary": "Ejecutar r-1 (merge_bib_files)",
+        "description": "Une archivos .bib de la carpeta 'descargas' mediante el script de automatización.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {"schema": {"$ref": "#/components/schemas/RunR1Request"}}
+          }
+        },
+        "responses": {
+          "200": {"description": "Ejecución completada", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/RunR1Response"}}}},
+          "400": {"description": "Solicitud inválida"},
+          "500": {"description": "Error interno"}
+        }
+      }
+    },
+    "/run/r2": {
+      "get": {
+        "summary": "Ejecutar r-2 (bibliometría)",
+        "description": "Ejecuta los módulos de 'src/r2 - bibliometria' que expongan la función `compare_texts`.\n\nComportamiento: recibe dos índices (query params `a` y `b`, 0-based) que indican los dos artículos a comparar. Si no se especifican, por defecto compara los dos primeros abstracts.\n\nSalida: para cada script en `src/r2 - bibliometria` la respuesta incluye un resumen estadístico (n, avg_pairwise, median_pairwise, top_5) y la matriz de similitud/calidad (campo `matrix`) serializada como un array de arrays de números.\n\nConsejo: pasar `limit` reduce el número de abstracts leídos desde el .bib (útil en pruebas).",
+        "parameters": [
+          {"name": "bib", "in": "query", "schema": {"type": "string"}, "description": "Ruta al .bib (default: descargas/unificado.bib)"},
+          {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 50}, "description": "Número máximo de abstracts a usar"},
+          {"name": "a", "in": "query", "schema": {"type": "integer"}, "description": "Índice (0-based) del primer artículo a comparar"},
+          {"name": "b", "in": "query", "schema": {"type": "integer"}, "description": "Índice (0-based) del segundo artículo a comparar"}
+        ],
+        "responses": {
+          "200": {"description": "Resultados resumidos", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/RunR2CompareResponse"}}}},
+          "400": {"description": "Parámetros inválidos"},
+          "500": {"description": "Error interno"}
+        }
+      }
+      ,
+      "post": {
+        "summary": "Ejecutar r-2 (bibliometría) para N artículos",
+        "description": "Permite enviar una lista de índices o claves en el body JSON para comparar N artículos. Ejemplos de body: {\"indices\":[0,1,2]} o {\"keys\":[\"ID1\",\"ID2\"]} o {\"all\": true}.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/RunR2Request"},
+              "example": {"bib": "descargas/unificado.bib", "indices": [0,1,2], "limit": 50}
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "Resultados resumidos", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/RunR2CompareResponse"}}}},
+          "400": {"description": "Parámetros inválidos"},
+          "500": {"description": "Error interno"}
+        }
+      }
+    },
+    "/run/r3": {
+      "post": {
+        "summary": "Ejecutar r-3 (análisis de frecuencia)",
+        "description": "Extrae abstracts del .bib, cuenta seeds, descubre candidatos (TF-IDF), calcula frecuencias/precisión y escribe CSVs de salida.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {"schema": {"$ref": "#/components/schemas/RunR3Request"}}
+          }
+        },
+        "responses": {
+          "200": {"description": "Análisis completado", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/RunR3Response"}}}},
+          "400": {"description": "Solicitud inválida"},
+          "500": {"description": "Error interno"}
+        }
+      }
+    },
+    "/articles": {
+      "get": {
+        "summary": "Listar artículos",
+        "description": "Devuelve una lista de artículos y metadatos extraídos de un archivo .bib: índice (0-based), key (ID BibTeX), título, autores, año y un snippet (primeros ~200 caracteres del abstract o título).\n\nParámetros: `bib` (ruta al .bib, por defecto `descargas/unificado.bib`) y `limit` (máximo de entradas a devolver). Esta ruta está pensada para que el frontend muestre un listado y permita seleccionar los índices `a` y `b` para el endpoint `/run/r2`.",
+        "parameters": [
+          {"name": "bib", "in": "query", "schema": {"type": "string"}, "description": "Ruta al .bib (default: descargas/unificado.bib)"},
+          {"name": "limit", "in": "query", "schema": {"type": "integer"}, "description": "Número máximo de artículos a devolver"}
+        ],
+        "responses": {
+          "200": {"description": "Lista de artículos", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ArticlesResponse"}}}},
+          "400": {"description": "Parámetros inválidos"},
+          "500": {"description": "Error interno"}
+        }
+      }
+    },
+    "/seeds": {
+      "post": {
+        "summary": "Subir/Actualizar palabras semilla",
+        "description": "Permite al frontend enviar un array de palabras semilla que se guardan en un archivo en el servidor. Útil para personalizar el análisis de r-3 antes de ejecutarlo.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/SeedsUploadRequest"},
+              "example": {"seeds": ["ai", "generative", "chatgpt"], "save_to": "src/r3 - frecuencia/seeds_example.txt"}
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "Semillas guardadas", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/SeedsUploadResponse"}}}},
+          "400": {"description": "Solicitud inválida"},
+          "500": {"description": "Error interno"}
+        }
+      },
+      "get": {
+        "summary": "Listar categorías de seeds",
+        "description": "Lista los archivos de seeds disponibles (categorías) ubicados en `src/r3 - frecuencia/seeds/`. Incluye la categoría 'default' si `seeds_example.txt` existe.",
+        "responses": {
+          "200": {"description": "Lista de categorías", "content": {"application/json": {"example": {"status": "ok", "seed_categories": ["default", "education", "methods"]}}}},
+          "500": {"description": "Error interno"}
+        }
+      }
+    },
+    "/download/unificado": {
+      "get": {
+        "summary": "Descargar archivo unificado .bib",
+        "description": "Descarga el archivo `descargas/unificado.bib` como attachment.",
+        "responses": {
+          "200": {
+            "description": "Archivo .bib unificado",
+            "content": {
+              "application/octet-stream": {"schema": {"type": "string", "format": "binary"}},
+              "text/plain": {"schema": {"type": "string", "format": "binary"}}
+            }
+          },
+          "404": {"description": "Archivo no encontrado"},
+          "500": {"description": "Error interno"}
+        }
+      }
+    },
+    "/download/repetidos": {
+      "get": {
+        "summary": "Descargar archivo repetidos .bib",
+        "description": "Descarga el archivo `descargas/repetidos.bib` como attachment.",
+        "responses": {
+          "200": {
+            "description": "Archivo .bib de repetidos",
+            "content": {
+              "application/octet-stream": {"schema": {"type": "string", "format": "binary"}},
+              "text/plain": {"schema": {"type": "string", "format": "binary"}}
+            }
+          },
+          "404": {"description": "Archivo no encontrado"},
+          "500": {"description": "Error interno"}
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "RunR1Request": {
+        "type": "object",
+        "properties": {"bib": {"type": "string", "description": "Ruta del archivo .bib"}},
+        "additionalProperties": false
+      },
+      "RunR1Response": {
+        "type": "object",
+        "properties": {"status": {"type": "string"}, "output": {"type": "string"}, "error": {"type": ["string", "null"]}}
+      },
+      "RunR2ResultItem": {
+        "type": "object",
+        "properties": {
+          "status": {"type": "string"},
+          "summary": {"type": "object"},
+          "matrix": {"type": "array", "items": {"type": "array", "items": {"type": "number"}}},
+          "error": {"type": "string"},
+          "skipped": {"type": "string"}
+        }
+      },
+      "RunR2Response": {
+        "type": "object",
+        "properties": {
+          "bib": {"type": "string"},
+          "n_abstracts_used": {"type": "integer"},
+          "selected_indices": {"type": "array", "items": {"type": "integer"}},
+          "results": {"type": "object", "additionalProperties": {"$ref": "#/components/schemas/RunR2ResultItem"}}
+        }
+      },
+      "RunR2CompareSummary": {
+        "type": "object",
+        "properties": {
+          "n": {"type": "integer"},
+          "avg_pairwise": {"type": ["number", "null"]},
+          "median_pairwise": {"type": ["number", "null"]},
+          "top_5": {"type": "array", "items": {"type": "number"}}
+        }
+      },
+      "RunR2CompareResultItem": {
+        "type": "object",
+        "properties": {
+          "status": {"type": "string"},
+          "summary": {"$ref": "#/components/schemas/RunR2CompareSummary"},
+          "matrix": {"type": "array", "items": {"type": "array", "items": {"type": "number"}}},
+          "error": {"type": "string"},
+          "skipped": {"type": "string"}
+        }
+      },
+      "RunR2CompareResponse": {
+        "type": "object",
+        "properties": {
+          "status": {"type": "string"},
+          "bib": {"type": "string"},
+          "n_entries": {"type": "integer"},
+          "selected_indices": {"type": "array", "items": {"type": "integer"}},
+          "labels": {"type": "array", "items": {"type": "string"}},
+          "results": {"type": "object", "additionalProperties": {"$ref": "#/components/schemas/RunR2CompareResultItem"}}
+        }
+      },
+      "RunR2Request": {
+        "type": "object",
+        "properties": {
+          "bib": {"type": "string"},
+          "limit": {"type": "integer"},
+          "indices": {"type": "array", "items": {"type": "integer"}},
+          "keys": {"type": "array", "items": {"type": "string"}},
+          "all": {"type": "boolean"}
+        },
+        "additionalProperties": false
+      },
+      "RunR3Request": {
+        "type": "object",
+        "properties": {"bib": {"type": "string"}, "seeds": {"type": "string"}, "seed_categories": {"oneOf": [{"type":"string"},{"type":"array","items":{"type":"string"}}], "description": "Nombre(s) de categoría de seeds (archivo sin .txt) o 'all' para usar todas las categorías. Puede ser cadena con comas o arreglo."}, "max_new": {"type": "integer"}, "out": {"type": "string"}},
+        "additionalProperties": false
+      },
+      "CandidateStat": {
+        "type": "object",
+        "properties": {"candidate": {"type": "string"}, "freq_total": {"type": "integer"}, "freq_in_seed_docs": {"type": "integer"}, "precision": {"type": "number"}}
+      },
+      "RunR3Response": {
+        "type": "object",
+        "properties": {
+          "status": {"type": "string"},
+          "bib": {"type": "string"},
+          "n_docs": {"type": "integer"},
+          "seeds_used": {"type": "array", "items": {"type": "string"}},
+          "seed_counts": {"type": "array", "items": {"type": "object"}},
+          "candidates": {"type": "array", "items": {"type": "string"}},
+          "candidate_stats": {"type": "array", "items": {"$ref": "#/components/schemas/CandidateStat"}},
+          "out_files": {"type": "object", "properties": {"seeds_csv": {"type": "string"}, "candidates_csv": {"type": "string"}}}
+        }
+      },
+      "ArticleItem": {
+        "type": "object",
+        "properties": {
+          "index": {"type": "integer"},
+          "key": {"type": "string"},
+          "title": {"type": "string"},
+          "authors": {"type": "string"},
+          "year": {"type": "string"},
+          "snippet": {"type": "string"}
+        }
+      },
+      "ArticlesResponse": {
+        "type": "object",
+        "properties": {
+          "bib": {"type": "string"},
+          "n_available": {"type": "integer"},
+          "articles": {"type": "array", "items": {"$ref": "#/components/schemas/ArticleItem"}}
+        }
+      },
+      "SeedsUploadRequest": {
+        "type": "object",
+        "properties": {
+          "seeds": {"type": "array", "items": {"type": "string"}},
+          "save_to": {"type": "string", "description": "Ruta de destino opcional para guardar el archivo de seeds"},
+          "category": {"type": "string", "description": "Nombre de categoría para guardar bajo src/r3 - frecuencia/seeds/{category}.txt"}
+        },
+        "required": ["seeds"],
+        "additionalProperties": false
+      },
+      "SeedsUploadResponse": {
+        "type": "object",
+        "properties": {
+          "status": {"type": "string"},
+          "n_seeds": {"type": "integer"},
+          "path": {"type": "string"},
+          "category": {"type": "string"}
+        }
+      }
+    }
+  }
+}
