@@ -32,3 +32,8 @@ matplotlib>=3.8.0
 
 # Para cargar archivos BibTeX
 bibtexparser>=1.4.2
+
+# Clustering y visualización
+seaborn>=0.13.2
+wordcloud>=1.9.3
+fpdf>=1.7.2
