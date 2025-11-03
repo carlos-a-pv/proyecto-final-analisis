@@ -37,3 +37,5 @@ bibtexparser>=1.4.2
 seaborn>=0.13.2
 wordcloud>=1.9.3
 fpdf>=1.7.2
+# Análisis y visualización de grafos
+networkx>=3.2.1
